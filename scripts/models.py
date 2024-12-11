@@ -1,7 +1,5 @@
-"""AI is creating summary for 
-    """
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, UniqueConstraint
 
 Base = declarative_base()
 
@@ -18,3 +16,8 @@ class PPHRecord(Base):
     org = Column(String)
     date = Column(DateTime)
     quantity = Column(Integer)
+    hash = Column(String, unique=True)
+
+    __table_args__ = (
+        UniqueConstraint('hash', name='unique_hash_constraint'),  # Garantir unicidade
+    )

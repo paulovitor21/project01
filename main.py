@@ -13,7 +13,8 @@ def main():
     
     try:
         # Carregar os dados
-        file_path = r"C:\Users\Paulo\Documents\project01\data\PPH Daily 12.04.2024.xlsx"
+        #file_path = r"C:\Users\Paulo\Documents\project01\referencia (1)\referencia\data_09_12_24\PPH Daily 12.09.2024.xlsx"
+        file_path = r"C:\Users\Paulo\Documents\project01\referencia (1)\referencia\PPH Daily 12.04.2024.xlsx"
         df_pph = load_excel(file_path)
     
         # Limpar os dados
