@@ -13,15 +13,15 @@ def main():
     
     try:
         # Carregar os dados
-        #file_path = r"C:\Users\Paulo\Documents\project01\referencia (1)\referencia\data_09_12_24\PPH Daily 12.09.2024.xlsx"
-        file_path = r"C:\Users\Paulo\Documents\project01\referencia (1)\referencia\PPH Daily 12.04.2024.xlsx"
-        df_pph = load_excel(file_path)
+        file_path = r"C:\Users\Paulo\Documents\project01\data\Delivery Status 12042024 0833.xlsx"
+        sheet_name = 'Sheet1'
+        df_delivery_status = load_excel(file_path, sheet_name)
     
         # Limpar os dados
-        df_pph = clean_data(df_pph)
+        df_delivery_status = clean_data(engine, df_delivery_status)
 
         # Salvar no banco
-        save_to_db(df_pph, db)
+        save_to_db(df_delivery_status, db)
         print("Dados salvos com sucesso!")
     except Exception as e:
         print(f"Ocorreu um erro: {e}")
