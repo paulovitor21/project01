@@ -2,8 +2,6 @@ from sqlalchemy.orm import Session
 from scripts.models import DeliveryRecord
 from scripts.generate_hash import generate_hash
 
-
-
 def save_to_db(df_delivery_status, db: Session):
     """
     Salva os registros no banco de dados usando ORM.
@@ -13,24 +11,18 @@ def save_to_db(df_delivery_status, db: Session):
         df_pph (DataFrame): DataFrame com os dados a serem inseridos.
         db (Session): Sessão do banco de dados.
     """
-    # Passo 1: Criar uma coluna 'temp_id' no DataFrame com números crescentes
-    df_delivery_status['temp_id'] = range(1, len(df_delivery_status) + 1)
-
-    # Passo 2: Gerar o hash baseado na combinação das colunas
-    df_delivery_status['hash_id'] = df_delivery_status.apply(
-        lambda row: generate_hash(row['temp_id'], row['status'], row['group'], row['item'], row['arrival_1']),
-        axis=1
-    )
-
     duplicate_count = 0  # Contador para duplicados
     inserted_count = 0  # Contador para registros inseridos
     for _, row in df_delivery_status.iterrows():
-        # Verificar se o hash já existe no banco
-        exists = db.query(DeliveryRecord).filter_by(hash_id=row['hash_id']).first()
-
+        # Gerar o hash do registro
+        record_hash = generate_hash(row['id'], row['status'], row['group'], row['item'], row['arrival_1'])
+        
+        #Verificar se o hash já existe no banco
+        exists = db.query(DeliveryRecord).filter_by(hash_id=record_hash).first()
+        
         if exists:
             duplicate_count += 1  # Incrementa o contador de duplicados
-            print(f"[Duplicado] Registro já existe para hash: {row['hash_id']}. Ignorando este registro.")
+            print(f"[Duplicado] Registro já existe para hash: {record_hash}. Ignorando este registro.")
             continue  # Ignora a inserção do registro duplicado, mas continua processando os próximos
         
         # Se não for duplicado, criar e adicionar o novo registro
@@ -83,14 +75,49 @@ def save_to_db(df_delivery_status, db: Session):
             arrival_cancel_2=row['arrival_cancel_2'],
             receiving_2=row['receiving_2'],
             nota_no=row['nota_no'],
-            hash_id=row['hash_id']  # Usando o hash_id gerado
+            hash_id=record_hash
         )
         db.add(record)
         inserted_count += 1  # Incrementa o contador de registros inseridos
 
     # Commit no banco
     db.commit()
-    # Exibe a quantidade de duplicados encontrados
+    #Exibe a quantidade de duplicados encontrados
     print(f"Total de duplicados encontrados: {duplicate_count}")
     print(f"Total de registros não duplicados inseridos: {inserted_count}")
     print("[Inserido] Todos os registros não duplicados foram inseridos com sucesso.")
+
+
+
+# from sqlalchemy.orm import Session
+# from scripts.models import PPHRecord
+# from scripts.generate_hash import generate_hash
+
+# def save_to_db(df_pph, db: Session):
+#     """Salvar os registros no banco de dados usando ORM.
+
+#     Args:
+#         df_pph ([type]): [description]
+#         db (Session): [description]
+#     """
+#     for _, row in df_pph.iterrows():
+#         # Gerar o hash do registro
+#         record_hash = generate_hash(row['Model.Suffix'], row['Org.'], row['Date'])
+#         # Verificar se o hash já existe no banco
+#         exists = db.query(PPHRecord).filter_by(hash=record_hash).first()
+#         if exists:
+#             print(f"[Duplicado] Registro já existe para hash: {record_hash}. Processamento interrompido.")
+#             return False  # Indica que a inserção não foi realizada
+
+#         if not exists:
+#             record = PPHRecord(
+#                 model_suffix = row['Model.Suffix'],
+#                 org = row['Org.'],
+#                 date = row['Date'],
+#                 quantity = row['Quantity'],
+#                 hash=record_hash
+#             )
+#             db.add(record)
+#     db.commit()
+#     print(f"[Inserido] Registro inserido com sucesso para hash: {record_hash}.")
+#     return True  # Indica que a inserção foi bem-sucedida

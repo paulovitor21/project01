@@ -5,67 +5,59 @@ def clean_data(engine, df_delivery_status: pd.DataFrame) -> pd.DataFrame:
     """Limpa e transforma os dados para adequação ao modelo.
 
     Args:
-        df_pph (pd.DataFrame): [description]
+        engine: Conexão ao banco de dados.
+        df_delivery_status (pd.DataFrame): Dados a serem limpos.
 
     Returns:
-        pd.DataFrame: [description]
+        pd.DataFrame: Dados limpos e transformados.
     """
-    # Converta a coluna 'Receiving.1' para datetime
-    df_delivery_status['Receiving.1'] = pd.to_datetime(df_delivery_status['Receiving.1'], errors='coerce')
+    # Limpar nomes das colunas
+    df_delivery_status.columns = (
+        df_delivery_status.columns
+        .str.replace(r'[.\s-]', '_', regex=True)
+        .str.lower()
+    )
+
+    # Converter a coluna 'receiving_1' para datetime e lidar com NaT
+    if 'receiving_1' in df_delivery_status.columns:
+        # Converter a coluna 'receiving_1' para datetime, forçando valores inválidos a se tornarem NaT
+        df_delivery_status['receiving_1'] = pd.to_datetime(df_delivery_status['receiving_1'], errors='coerce')
     
-    # adição da colunas 'status' and 'group'
-    df_status_group = pd.DataFrame({
-        'Status': [''] * len(df_delivery_status),  # Inicializando com valores vazios, ou você pode adicionar valores específicos
-        'Group': [''] * len(df_delivery_status),   # Inicializando com valores vazios
-    })
+    # Se necessário, lidar com valores NaT
+    # Exemplo: substituir NaT por um valor específico, como uma data padrão
+    df_delivery_status['receiving_1'].fillna(pd.Timestamp('1970-01-01'), inplace=True)
 
-    df_delivery_status = pd.concat([df_status_group, df_delivery_status], axis=1)
 
-    # lista de grupos
-    groups = [
-        (['NW1', 'NWD', 'NWH', 'NWW'], 'TV'),
-        (['NW4', 'NWU', 'NWX'], 'AV'),
-        (['NW7', 'NW8', 'NWQ'], 'AC'),
-        (['NWK'], 'BM')
-    ]
+    # Garantir que colunas não datetime substituam NaN por None
+    df_delivery_status = df_delivery_status.where(pd.notna(df_delivery_status), None)
 
-    # adicionar grupos de acordo com a lista
-    def add_group(item):
-        for condition, group in groups:
-            if item in condition:
-                return group
-        return 'Others'  # Caso não atenda a nenhuma das condições
+    # Mapeamento de grupos
+    group_mapping = {
+        'NW1': 'TV', 'NWD': 'TV', 'NWH': 'TV', 'NWW': 'TV',
+        'NW4': 'AV', 'NWU': 'AV', 'NWX': 'AV',
+        'NW7': 'AC', 'NW8': 'AC', 'NWQ': 'AC',
+        'NWK': 'BM'
+    }
 
-    # Aplicar a função para preencher a coluna 'Group'
-    df_delivery_status['Group'] = df_delivery_status['ORG'].apply(add_group)
+    # Adicionar coluna 'group'
+    df_delivery_status['group'] = df_delivery_status['org'].map(group_mapping).fillna('Others')
 
-    # Passo 1: Definir a data de referência como a data atual
-    plan_pph_value = datetime.now()  # Pega a data atual como referência
+    # Data de referência
+    plan_pph_value = datetime.now()
 
-    # Adicionar 'Status' -> Y or N
-    # Passo 2: Ajustar a consulta SQL
-    query = """
-    SELECT date
-    FROM table_pph_teste 
-    WHERE date >= %s
-    """
-    # Passo 3: Definir os parâmetros como uma lista de tuplas
-    params = (plan_pph_value, )
-    # Passo 4: Passar a consulta e o parâmetro corretamente para o pandas
+    # Consulta para buscar a data mais recente do banco
+    query = "SELECT date FROM table_pph_teste WHERE date >= %s"
+    params = (plan_pph_value,)
     df_reference_date = pd.read_sql(query, engine, params=params)
-    # Passo 5: Se tiver alguma data correspondente, pega a mais recente
+
+    # Atualizar a data de referência
     if not df_reference_date.empty:
-        plan_pph_value = df_reference_date['date'].max()  # Pegando a data mais recente
+        plan_pph_value = df_reference_date['date'].max()
 
-    # Função para calcular o valor da coluna 'Status' com base na data de referência dinâmica
-    def calculate_status(row):
-        # Verifica se 'Receiving.1' é vazio ou maior/igual ao valor de 'plan_pph_value'
-        if pd.isna(row['Receiving.1']) or row['Receiving.1'] >= plan_pph_value:
-            return 'Y'
-        else:
-            return 'N'
-
-    # Passo 7: Adiciona a coluna 'Status' no DataFrame df_delivery_status
-    df_delivery_status['Status'] = df_delivery_status.apply(lambda row: calculate_status(row), axis=1)
+    # Adicionar a coluna 'Status' de forma vetorizada
+    df_delivery_status['status'] = (
+         (df_delivery_status['receiving_1'] == pd.Timestamp('1970-01-01')) | 
+        (df_delivery_status['receiving_1'] >= plan_pph_value)
+    ).map({True: 'Y', False: 'N'})
 
     return df_delivery_status
