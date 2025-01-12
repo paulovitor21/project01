@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 
 # Carregar variáveis do arquivo .env
-load_dotenv()
+load_dotenv(override=True)
 
 # Codificar a senha para URL
 db_password = quote_plus(os.getenv('DB_PASSWORD'))

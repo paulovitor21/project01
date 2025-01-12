@@ -2,9 +2,7 @@ from sqlalchemy.orm import Session
 from scripts.models import BomRecord
 from scripts.generate_hash import generate_hash
 
-
-
-def save_to_db(df_bom, db: Session):
+def save_to_db(df_bom, db: Session, file_date):
     """
     Salva os registros no banco de dados usando ORM.
     Processa todos os registros, mas apenas os registros não duplicados serão inseridos no banco.
@@ -13,6 +11,7 @@ def save_to_db(df_bom, db: Session):
         df_pph (DataFrame): DataFrame com os dados a serem inseridos.
         db (Session): Sessão do banco de dados.
     """
+
     # Passo 1: Criar uma coluna 'temp_id' no DataFrame com números crescentes
     df_bom['temp_id'] = range(1, len(df_bom) + 1)
 
@@ -35,7 +34,9 @@ def save_to_db(df_bom, db: Session):
         
         # Se não for duplicado, criar e adicionar o novo registro
         record = BomRecord(
+            file_date = file_date,
             org = row['org.'],
+            top_item = row['top item'],
             child_item = row['child item'],
             child_desc = row['child desc'],
             child_uit = row['child uit'],
@@ -47,7 +48,7 @@ def save_to_db(df_bom, db: Session):
             supplier = row['supplier'],
             supplier_name = row['supplier name'],
             model_mrp = row['model mrp'],
-            infor = row['Infor'],
+            infor = row['infor'],
             date = row['date'],
             quantity = row['quantity'],
             hash_id=row['hash_id']  # Usando o hash_id gerado
