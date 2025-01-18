@@ -26,5 +26,4 @@ class BomRecord(Base):
     infor = Column(name="infor", type_=String)
     date = Column(name="date", type_=TIMESTAMP)
     quantity = Column(name="quantity", type_=Integer)
-    hash_id = Column(String, unique=True)
 
