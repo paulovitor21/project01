@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from scripts.models import BomRecord
+import logging
 
 def save_to_db(df_bom, db: Session, file_date):
     """
@@ -11,13 +12,15 @@ def save_to_db(df_bom, db: Session, file_date):
         df_bom (DataFrame): DataFrame com os dados a serem inseridos.
         db (Session): Sessão do banco de dados.
         file_date (str): Data do arquivo a ser processado.
-    """
 
+    Returns:
+        bool: True se novos registros foram inseridos, False caso contrário.
+    """
     # Verificar se já existem registros no banco para a mesma data do arquivo
     existing_records = db.query(BomRecord).filter_by(file_date=file_date).first()
     if existing_records:
-        print(f"[Ignorado] Registros para a data {file_date} já existem no banco. Nenhum registro será inserido.")
-        return
+        logging.info(f"[Ignorado] Registros para a data {file_date} já existem no banco. Nenhum registro foi inserido.")
+        return False  # Nenhum dado foi inserido
 
     # Inserir os registros, pois não existem registros para a data do arquivo
     inserted_count = 0
@@ -46,4 +49,8 @@ def save_to_db(df_bom, db: Session, file_date):
 
     # Commit no banco
     db.commit()
-    print(f"[Inserido] Total de registros inseridos para a data {file_date}: {inserted_count}.")
+
+    # Exibir mensagem de sucesso apenas se registros forem inseridos
+    logging.info(f"[Inserido] Total de registros inseridos para a data {file_date}: {inserted_count}.")
+    logging.info("Dados salvos com sucesso!")
+    return True
