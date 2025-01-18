@@ -5,6 +5,7 @@ from scripts.models import Base
 from scripts.data_loader import load_excel
 from scripts.data_cleaning import clean_data
 from scripts.db_operations import save_to_db
+from scripts.convert_to_xlsb_xlsx import convert_xlsb_to_xlsx
 import pandas as pd
 from datetime import datetime
 
@@ -12,9 +13,9 @@ from datetime import datetime
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def extrair_data(file_path):
-    data_modificacao = os.path.getmtime(file_path)
-    data_arquivo = datetime.fromtimestamp(data_modificacao).strftime('%Y-%m-%d')
-    return data_arquivo
+    data_criacao = os.path.getctime(file_path)
+    data_criacao_formatada = datetime.fromtimestamp(data_criacao).strftime('%Y-%m-%d %H:%M:%S')
+    return data_criacao_formatada
 
 def main():
     # Cria as tabelas no banco de dados
@@ -24,15 +25,23 @@ def main():
     db = SessionLocal()
 
     try:
+        # Caminho do arquivo .xlsb de origem e arquivo convertido
+        xlsb_file = r"C:\Users\Paulo\Downloads\Downloads-1\1210_Bom_Master.xlsb"
+        #xlsb_file = r"C:\Users\Paulo\Documents\data_g\ref\1213_Bom_Master.xlsb"
+        #sheet_name = "BOM_Master"
+        xlsx_file = "bom.xlsx"
+        
+        convert_xlsb_to_xlsx(xlsb_file, xlsx_file)
+        
         # Carregar os dados
-        file_path = r"C:\Users\Paulo\Documents\project01\data\1213_Bom_Master.xlsx"
-        sheet_name = 'BOM_Master'
-        df_bom = load_excel(file_path, sheet_name)
+        file_path = xlsx_file
+        #sheet_name = sheet_name
+        df_bom = load_excel(file_path)
 
         # Extrair data do arquivo
         file_date = extrair_data(file_path)
         logging.info(f"Data do ARQUIVO -> {file_date}")
-
+        
         # Limpar os dados
         df_bom = clean_data(engine, df_bom)
 
